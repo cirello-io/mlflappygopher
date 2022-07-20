@@ -12,6 +12,8 @@ github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a h1:JSvGDIbm
 github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a/go.mod h1:XDJAKZRPZ1CvBcN2aX5YOUTYGHki24fSF0Iv48Ibg0s=
 github.com/veandco/go-sdl2 v0.0.0-20180825083429-557c26dfe834 h1:rTaxVZf9Hrgl44gEtGUdo48riA2pYF/Ecmw8Wr31HJE=
 github.com/veandco/go-sdl2 v0.0.0-20180825083429-557c26dfe834/go.mod h1:FB+kTpX9YTE+urhYiClnRzpOXbiWgaU3+5F2AB78DPg=
+github.com/veandco/go-sdl2 v0.4.24 h1:J+OCnPp0yfas4DAG13e3kIgC84mNxWGa3gpWYxrQQfI=
+github.com/veandco/go-sdl2 v0.4.24/go.mod h1:OROqMhHD43nT4/i9crJukyVecjPNYYuCofep6SNiAjY=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de h1:xSjD6HQTqT0H/k60N5yYBtnN1OEkVy7WIo/DYyxKRO0=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/tools v0.0.0-20180525024113-a5b4c53f6e8b h1:7tibmaEqrQYA+q6ri7NQjuxqSwechjtDHKq6/e85S38=

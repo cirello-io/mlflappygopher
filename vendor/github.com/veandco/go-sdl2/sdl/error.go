@@ -76,3 +76,14 @@ func OutOfMemory() {
 func Unsupported() {
 	Error(UNSUPPORTED)
 }
+
+// errorFromInt returns GetError() if passed negative value, otherwise it returns nil.
+func errorFromInt(code int) (err error) {
+	if code < 0 {
+		err = GetError()
+		if err == nil {
+			err = errors.New("Unknown error (probably using old version of SDL2 and the function called is not supported?)")
+		}
+	}
+	return
+}

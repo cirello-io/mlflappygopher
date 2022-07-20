@@ -1,4 +1,40 @@
-# github.com/veandco/go-sdl2 v0.0.0-20180825083429-557c26dfe834
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+# github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c
+## explicit
+# github.com/jtolds/gls v4.2.1+incompatible
+## explicit
+# github.com/sjwhitworth/golearn v0.0.0-20180701183201-46d6837c1319
+## explicit
+github.com/sjwhitworth/golearn/base
+github.com/sjwhitworth/golearn/filters
+github.com/sjwhitworth/golearn/neural
+# github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf
+## explicit
+# github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
+## explicit
+# github.com/veandco/go-sdl2 v0.4.24
+## explicit; go 1.15
 github.com/veandco/go-sdl2/img
 github.com/veandco/go-sdl2/sdl
 github.com/veandco/go-sdl2/ttf
+# golang.org/x/exp v0.0.0-20180321215751-8460e604b9de
+## explicit
+# golang.org/x/tools v0.0.0-20180525024113-a5b4c53f6e8b
+## explicit
+# gonum.org/v1/gonum v0.0.0-20180825225636-e09c1d5ea579
+## explicit
+gonum.org/v1/gonum/blas
+gonum.org/v1/gonum/blas/blas64
+gonum.org/v1/gonum/blas/gonum
+gonum.org/v1/gonum/floats
+gonum.org/v1/gonum/internal/asm/c128
+gonum.org/v1/gonum/internal/asm/f32
+gonum.org/v1/gonum/internal/asm/f64
+gonum.org/v1/gonum/internal/math32
+gonum.org/v1/gonum/lapack
+gonum.org/v1/gonum/lapack/gonum
+gonum.org/v1/gonum/lapack/lapack64
+gonum.org/v1/gonum/mat
+# gonum.org/v1/netlib v0.0.0-20180816165226-ebcc3d2662d3
+## explicit

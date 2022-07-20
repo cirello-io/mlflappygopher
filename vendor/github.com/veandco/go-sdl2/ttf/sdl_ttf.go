@@ -1,15 +1,32 @@
 // Package ttf is a TrueType font rendering library that is used with the SDL library, and almost as portable. It depends on freetype2 to handle the TrueType font data. It allows a programmer to use multiple TrueType fonts without having to code a font rendering routine themselves. With the power of outline fonts and antialiasing, high quality text output can be obtained without much effort.
 package ttf
 
-//#include <stdlib.h>
-//#include "sdl_ttf_wrapper.h"
-//void Do_TTF_SetError(const char *str) {
-//    TTF_SetError("%s", str);
-//}
+/*
+#include <stdlib.h>
+#include "sdl_ttf_wrapper.h"
+void Do_TTF_SetError(const char *str) {
+    TTF_SetError("%s", str);
+}
+
+#if SDL_TTF_MAJOR_VERSION == 2 && SDL_TTF_MINOR_VERSION == 0 && SDL_TTF_PATCHLEVEL >= 18
+static inline void ByteSwappedUNICODE(int swapped)
+{
+	TTF_ByteSwappedUNICODE(swapped ? SDL_TRUE : SDL_FALSE);
+}
+#else
+static inline void ByteSwappedUNICODE(int swapped)
+{
+	TTF_ByteSwappedUNICODE(swapped);
+}
+#endif
+*/
 import "C"
-import "github.com/veandco/go-sdl2/sdl"
-import "unsafe"
-import "errors"
+import (
+	"errors"
+	"unsafe"
+
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 // Hinting settings.
 const (
@@ -79,7 +96,7 @@ func ByteSwappedUnicode(swap bool) {
 	if swap {
 		val = 1
 	}
-	C.TTF_ByteSwappedUNICODE(C.int(val))
+	C.ByteSwappedUNICODE(C.int(val))
 }
 
 // OpenFont loads file for use as a font, at the specified size. This is actually OpenFontIndex(file, size, 0). This can load TTF and FON files.
@@ -196,6 +213,43 @@ func (f *Font) SizeUTF8(text string) (int, int, error) {
 		return int(w), int(h), nil
 	}
 	return int(w), int(h), GetError()
+}
+
+// RenderGlyphSolid renders the glyph for the UNICODE ch using font with fg color onto a new surface, using the Solid mode. The caller is responsible for freeing any returned surface.
+// (https://www.libsdl.org/projects/SDL_ttf/docs/SDL_ttf.html#SEC46)
+func (f *Font) RenderGlyphSolid(ch rune, fg sdl.Color) (*sdl.Surface, error) {
+	_ch := C.Uint16(ch)
+	_fg := C.SDL_Color{C.Uint8(fg.R), C.Uint8(fg.G), C.Uint8(fg.B), C.Uint8(fg.A)}
+	surface := (*sdl.Surface)(unsafe.Pointer(C.TTF_RenderGlyph_Solid(f.f, _ch, _fg)))
+	if surface == nil {
+		return nil, GetError()
+	}
+	return surface, nil
+}
+
+// RenderGlyphShaded renders the glyph for the UNICODE ch using font with fg color onto a new surface filled with the bg color, using the Shaded mode. The caller is responsible for freeing any returned surface.
+// (https://www.libsdl.org/projects/SDL_ttf/docs/SDL_ttf.html#SEC50)
+func (f *Font) RenderGlyphShaded(ch rune, fg, bg sdl.Color) (*sdl.Surface, error) {
+	_ch := C.Uint16(ch)
+	_fg := C.SDL_Color{C.Uint8(fg.R), C.Uint8(fg.G), C.Uint8(fg.B), C.Uint8(fg.A)}
+	_bg := C.SDL_Color{C.Uint8(bg.R), C.Uint8(bg.G), C.Uint8(bg.B), C.Uint8(bg.A)}
+	surface := (*sdl.Surface)(unsafe.Pointer(C.TTF_RenderGlyph_Shaded(f.f, _ch, _fg, _bg)))
+	if surface == nil {
+		return nil, GetError()
+	}
+	return surface, nil
+}
+
+// RenderGlyphBlended renders the glyph for the UNICODE ch using font with fg color onto a new surface, using the Blended mode. The caller is responsible for freeing any returned surface.
+// (https://www.libsdl.org/projects/SDL_ttf/docs/SDL_ttf.html#SEC54)
+func (f *Font) RenderGlyphBlended(ch rune, fg sdl.Color) (*sdl.Surface, error) {
+	_ch := C.Uint16(ch)
+	_fg := C.SDL_Color{C.Uint8(fg.R), C.Uint8(fg.G), C.Uint8(fg.B), C.Uint8(fg.A)}
+	surface := (*sdl.Surface)(unsafe.Pointer(C.TTF_RenderGlyph_Blended(f.f, _ch, _fg)))
+	if surface == nil {
+		return nil, GetError()
+	}
+	return surface, nil
 }
 
 // Close frees the memory used by font, and frees font itself as well. Do not use font after this without loading a new font to it.
