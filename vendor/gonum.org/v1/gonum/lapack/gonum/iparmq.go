@@ -10,11 +10,13 @@ import "math"
 // related subroutines for eigenvalue problems.
 //
 // ispec specifies the parameter to return:
-//  12: Crossover point between Dlahqr and Dlaqr0. Will be at least 11.
-//  13: Deflation window size.
-//  14: Nibble crossover point. Determines when to skip a multi-shift QR sweep.
-//  15: Number of simultaneous shifts in a multishift QR iteration.
-//  16: Select structured matrix multiply.
+//
+//	12: Crossover point between Dlahqr and Dlaqr0. Will be at least 11.
+//	13: Deflation window size.
+//	14: Nibble crossover point. Determines when to skip a multi-shift QR sweep.
+//	15: Number of simultaneous shifts in a multishift QR iteration.
+//	16: Select structured matrix multiply.
+//
 // For other values of ispec Iparmq will panic.
 //
 // name is the name of the calling function. name must be in uppercase but this
@@ -52,7 +54,7 @@ func (Implementation) Iparmq(ispec int, name, opts string, n, ilo, ihi, lwork in
 
 	switch ispec {
 	default:
-		panic("lapack: bad ispec")
+		panic(badIspec)
 
 	case 12:
 		// Matrices of order smaller than nmin get sent to Dlahqr, the
@@ -82,7 +84,7 @@ func (Implementation) Iparmq(ispec int, name, opts string, n, ilo, ihi, lwork in
 
 	case 16:
 		if len(name) != 6 {
-			panic("lapack: bad name")
+			panic(badName)
 		}
 		const (
 			k22min = 14

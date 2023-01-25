@@ -7,7 +7,9 @@ package gonum
 import "gonum.org/v1/gonum/blas"
 
 // Dgerq2 computes an RQ factorization of the m×n matrix A,
-//  A = R * Q.
+//
+//	A = R * Q.
+//
 // On exit, if m <= n, the upper triangle of the subarray
 // A[0:m, n-m:n] contains the m×m upper triangular matrix R.
 // If m >= n, the elements on and above the (m-n)-th subdiagonal
@@ -17,9 +19,13 @@ import "gonum.org/v1/gonum/blas"
 // reflectors.
 //
 // The matrix Q is represented as a product of elementary reflectors
-//  Q = H_0 H_1 . . . H_{min(m,n)-1}.
+//
+//	Q = H_0 H_1 . . . H_{min(m,n)-1}.
+//
 // Each H(i) has the form
-//  H_i = I - tau_i * v * v^T
+//
+//	H_i = I - tau_i * v * vᵀ
+//
 // where v is a vector with v[0:n-k+i-1] stored in A[m-k+i, 0:n-k+i-1],
 // v[n-k+i:n] = 0 and v[n-k+i] = 1.
 //
@@ -28,13 +34,28 @@ import "gonum.org/v1/gonum/blas"
 //
 // Dgerq2 is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dgerq2(m, n int, a []float64, lda int, tau, work []float64) {
-	checkMatrix(m, n, a, lda)
-	k := min(m, n)
-	if len(tau) < k {
-		panic(badTau)
+	switch {
+	case m < 0:
+		panic(mLT0)
+	case n < 0:
+		panic(nLT0)
+	case lda < max(1, n):
+		panic(badLdA)
+	case len(work) < m:
+		panic(shortWork)
 	}
-	if len(work) < m {
-		panic(badWork)
+
+	// Quick return if possible.
+	k := min(m, n)
+	if k == 0 {
+		return
+	}
+
+	switch {
+	case len(a) < (m-1)*lda+n:
+		panic(shortA)
+	case len(tau) < k:
+		panic(shortTau)
 	}
 
 	for i := k - 1; i >= 0; i-- {

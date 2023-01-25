@@ -11,7 +11,9 @@ import (
 
 // Dorg2l generates an m×n matrix Q with orthonormal columns which is defined
 // as the last n columns of a product of k elementary reflectors of order m.
-//  Q = H_{k-1} * ... * H_1 * H_0
+//
+//	Q = H_{k-1} * ... * H_1 * H_0
+//
 // See Dgelqf for more information. It must be that m >= n >= k.
 //
 // tau contains the scalar reflectors computed by Dgeqlf. tau must have length
@@ -22,21 +24,32 @@ import (
 //
 // Dorg2l is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorg2l(m, n, k int, a []float64, lda int, tau, work []float64) {
-	checkMatrix(m, n, a, lda)
-	if len(tau) < k {
-		panic(badTau)
-	}
-	if len(work) < n {
-		panic(badWork)
-	}
-	if m < n {
-		panic(mLTN)
-	}
-	if k > n {
+	switch {
+	case m < 0:
+		panic(mLT0)
+	case n < 0:
+		panic(nLT0)
+	case n > m:
+		panic(nGTM)
+	case k < 0:
+		panic(kLT0)
+	case k > n:
 		panic(kGTN)
+	case lda < max(1, n):
+		panic(badLdA)
 	}
+
 	if n == 0 {
 		return
+	}
+
+	switch {
+	case len(a) < (m-1)*lda+n:
+		panic(shortA)
+	case len(tau) < k:
+		panic(shortTau)
+	case len(work) < n:
+		panic(shortWork)
 	}
 
 	// Initialize columns 0:n-k to columns of the unit matrix.

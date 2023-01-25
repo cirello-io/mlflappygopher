@@ -11,32 +11,44 @@ import (
 
 // Dorg2r generates an m×n matrix Q with orthonormal columns defined by the
 // product of elementary reflectors as computed by Dgeqrf.
-//  Q = H_0 * H_1 * ... * H_{k-1}
+//
+//	Q = H_0 * H_1 * ... * H_{k-1}
+//
 // len(tau) >= k, 0 <= k <= n, 0 <= n <= m, len(work) >= n.
 // Dorg2r will panic if these conditions are not met.
 //
 // Dorg2r is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorg2r(m, n, k int, a []float64, lda int, tau []float64, work []float64) {
-	checkMatrix(m, n, a, lda)
-	if len(tau) < k {
-		panic(badTau)
-	}
-	if len(work) < n {
-		panic(badWork)
-	}
-	if k > n {
+	switch {
+	case m < 0:
+		panic(mLT0)
+	case n < 0:
+		panic(nLT0)
+	case n > m:
+		panic(nGTM)
+	case k < 0:
+		panic(kLT0)
+	case k > n:
 		panic(kGTN)
+	case lda < max(1, n):
+		panic(badLdA)
 	}
-	if n > m {
-		panic(mLTN)
-	}
-	if len(work) < n {
-		panic(badWork)
-	}
+
 	if n == 0 {
 		return
 	}
+
+	switch {
+	case len(a) < (m-1)*lda+n:
+		panic(shortA)
+	case len(tau) < k:
+		panic(shortTau)
+	case len(work) < n:
+		panic(shortWork)
+	}
+
 	bi := blas64.Implementation()
+
 	// Initialize columns k+1:n to columns of the unit matrix.
 	for l := 0; l < m; l++ {
 		for j := k; j < n; j++ {

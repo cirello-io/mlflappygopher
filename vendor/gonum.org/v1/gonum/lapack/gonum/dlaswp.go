@@ -21,12 +21,16 @@ func (impl Implementation) Dlaswp(n int, a []float64, lda int, k1, k2 int, ipiv 
 	switch {
 	case n < 0:
 		panic(nLT0)
-	case k2 < 0:
-		panic(badK2)
-	case k1 < 0 || k2 < k1:
+	case k1 < 0:
 		panic(badK1)
+	case k2 < k1:
+		panic(badK2)
+	case lda < max(1, n):
+		panic(badLdA)
+	case len(a) < k2*lda+n: // A must have at least k2+1 rows.
+		panic(shortA)
 	case len(ipiv) != k2+1:
-		panic(badIpiv)
+		panic(badLenIpiv)
 	case incX != 1 && incX != -1:
 		panic(absIncNotOne)
 	}
@@ -34,14 +38,21 @@ func (impl Implementation) Dlaswp(n int, a []float64, lda int, k1, k2 int, ipiv 
 	if n == 0 {
 		return
 	}
+
 	bi := blas64.Implementation()
 	if incX == 1 {
 		for k := k1; k <= k2; k++ {
+			if k == ipiv[k] {
+				continue
+			}
 			bi.Dswap(n, a[k*lda:], 1, a[ipiv[k]*lda:], 1)
 		}
 		return
 	}
 	for k := k2; k >= k1; k-- {
+		if k == ipiv[k] {
+			continue
+		}
 		bi.Dswap(n, a[k*lda:], 1, a[ipiv[k]*lda:], 1)
 	}
 }

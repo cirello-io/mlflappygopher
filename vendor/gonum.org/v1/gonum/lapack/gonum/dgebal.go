@@ -15,10 +15,12 @@ import (
 // and scaling. Both steps are optional and depend on the value of job.
 //
 // Permuting consists of applying a permutation matrix P such that the matrix
-// that results from P^T*A*P takes the upper block triangular form
-//            [ T1  X  Y  ]
-//  P^T A P = [  0  B  Z  ],
-//            [  0  0  T2 ]
+// that results from Pᵀ*A*P takes the upper block triangular form
+//
+//	         [ T1  X  Y  ]
+//	Pᵀ A P = [  0  B  Z  ],
+//	         [  0  0  T2 ]
+//
 // where T1 and T2 are upper triangular matrices and B contains at least one
 // nonzero off-diagonal element in each row and column. The indices ilo and ihi
 // mark the starting and ending columns of the submatrix B. The eigenvalues of A
@@ -28,9 +30,11 @@ import (
 // Scaling consists of applying a diagonal similarity transformation D such that
 // D^{-1}*B*D has the 1-norm of each row and its corresponding column nearly
 // equal. The output matrix is
-//  [ T1     X*D          Y    ]
-//  [  0  inv(D)*B*D  inv(D)*Z ].
-//  [  0      0           T2   ]
+//
+//	[ T1     X*D          Y    ]
+//	[  0  inv(D)*B*D  inv(D)*Z ].
+//	[  0      0           T2   ]
+//
 // Scaling may reduce the 1-norm of the matrix, and improve the accuracy of
 // the computed eigenvalues and/or eigenvectors.
 //
@@ -41,38 +45,54 @@ import (
 // If job is lapack.PermuteScale, both permuting and scaling will be done.
 //
 // On return, if job is lapack.Permute or lapack.PermuteScale, it will hold that
-//  A[i,j] == 0,   for i > j and j ∈ {0, ..., ilo-1, ihi+1, ..., n-1}.
+//
+//	A[i,j] == 0,   for i > j and j ∈ {0, ..., ilo-1, ihi+1, ..., n-1}.
+//
 // If job is lapack.BalanceNone or lapack.Scale, or if n == 0, it will hold that
-//  ilo == 0 and ihi == n-1.
+//
+//	ilo == 0 and ihi == n-1.
 //
 // On return, scale will contain information about the permutations and scaling
 // factors applied to A. If π(j) denotes the index of the column interchanged
 // with column j, and D[j,j] denotes the scaling factor applied to column j,
 // then
-//  scale[j] == π(j),     for j ∈ {0, ..., ilo-1, ihi+1, ..., n-1},
-//           == D[j,j],   for j ∈ {ilo, ..., ihi}.
+//
+//	scale[j] == π(j),     for j ∈ {0, ..., ilo-1, ihi+1, ..., n-1},
+//	         == D[j,j],   for j ∈ {ilo, ..., ihi}.
+//
 // scale must have length equal to n, otherwise Dgebal will panic.
 //
 // Dgebal is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dgebal(job lapack.BalanceJob, n int, a []float64, lda int, scale []float64) (ilo, ihi int) {
-	switch job {
-	default:
+	switch {
+	case job != lapack.BalanceNone && job != lapack.Permute && job != lapack.Scale && job != lapack.PermuteScale:
 		panic(badBalanceJob)
-	case lapack.BalanceNone, lapack.Permute, lapack.Scale, lapack.PermuteScale:
-	}
-	checkMatrix(n, n, a, lda)
-	if len(scale) != n {
-		panic("lapack: bad length of scale")
+	case n < 0:
+		panic(nLT0)
+	case lda < max(1, n):
+		panic(badLdA)
 	}
 
 	ilo = 0
 	ihi = n - 1
 
-	if n == 0 || job == lapack.BalanceNone {
+	if n == 0 {
+		return ilo, ihi
+	}
+
+	if len(scale) != n {
+		panic(shortScale)
+	}
+
+	if job == lapack.BalanceNone {
 		for i := range scale {
 			scale[i] = 1
 		}
 		return ilo, ihi
+	}
+
+	if len(a) < (n-1)*lda+n {
+		panic(shortA)
 	}
 
 	bi := blas64.Implementation()

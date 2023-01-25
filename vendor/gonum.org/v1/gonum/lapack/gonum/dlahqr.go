@@ -19,9 +19,13 @@ import (
 // quasi-triangular, although this is not checked.
 //
 // It must hold that
-//  0 <= ilo <= max(0,ihi), and ihi < n,
+//
+//	0 <= ilo <= max(0,ihi), and ihi < n,
+//
 // and that
-//  H[ilo,ilo-1] == 0,  if ilo > 0,
+//
+//	H[ilo,ilo-1] == 0,  if ilo > 0,
+//
 // otherwise Dlahqr will panic.
 //
 // If unconverged is zero on return, wr[ilo:ihi+1] and wi[ilo:ihi+1] will contain
@@ -37,7 +41,9 @@ import (
 //
 // z and ldz represent an n×n matrix Z. If wantz is true, the transformations
 // will be applied to the submatrix Z[iloz:ihiz+1,ilo:ihi+1] and it must hold that
-//  0 <= iloz <= ilo, and ihi <= ihiz < n.
+//
+//	0 <= iloz <= ilo, and ihi <= ihiz < n.
+//
 // If wantz is false, z is not referenced.
 //
 // unconverged indicates whether Dlahqr computed all the eigenvalues ilo to ihi
@@ -58,7 +64,9 @@ import (
 // which have been successfully computed.
 //
 // If unconverged is positive and wantt is true, then on return
-//  (initial H)*U = U*(final H),   (*)
+//
+//	(initial H)*U = U*(final H),   (*)
+//
 // where U is an orthogonal matrix. The final H is upper Hessenberg and
 // H[unconverged:ihi+1,unconverged:ihi+1] is upper quasi-triangular.
 //
@@ -67,38 +75,48 @@ import (
 // H[ilo:unconverged,ilo:unconverged].
 //
 // If unconverged is positive and wantz is true, then on return
-//  (final Z) = (initial Z)*U,
+//
+//	(final Z) = (initial Z)*U,
+//
 // where U is the orthogonal matrix in (*) regardless of the value of wantt.
 //
 // Dlahqr is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlahqr(wantt, wantz bool, n, ilo, ihi int, h []float64, ldh int, wr, wi []float64, iloz, ihiz int, z []float64, ldz int) (unconverged int) {
-	checkMatrix(n, n, h, ldh)
 	switch {
-	case ilo < 0 || max(0, ihi) < ilo:
+	case n < 0:
+		panic(nLT0)
+	case ilo < 0, max(0, ihi) < ilo:
 		panic(badIlo)
-	case n <= ihi:
+	case ihi >= n:
 		panic(badIhi)
-	case len(wr) != ihi+1:
-		panic("lapack: bad length of wr")
-	case len(wi) != ihi+1:
-		panic("lapack: bad length of wi")
-	case ilo > 0 && h[ilo*ldh+ilo-1] != 0:
-		panic("lapack: block is not isolated")
-	}
-	if wantz {
-		checkMatrix(n, n, z, ldz)
-		switch {
-		case iloz < 0 || ilo < iloz:
-			panic("lapack: iloz out of range")
-		case ihiz < ihi || n <= ihiz:
-			panic("lapack: ihiz out of range")
-		}
+	case ldh < max(1, n):
+		panic(badLdH)
+	case wantz && (iloz < 0 || ilo < iloz):
+		panic(badIloz)
+	case wantz && (ihiz < ihi || n <= ihiz):
+		panic(badIhiz)
+	case ldz < 1, wantz && ldz < n:
+		panic(badLdZ)
 	}
 
 	// Quick return if possible.
 	if n == 0 {
 		return 0
 	}
+
+	switch {
+	case len(h) < (n-1)*ldh+n:
+		panic(shortH)
+	case len(wr) != ihi+1:
+		panic(shortWr)
+	case len(wi) != ihi+1:
+		panic(shortWi)
+	case wantz && len(z) < (n-1)*ldz+n:
+		panic(shortZ)
+	case ilo > 0 && h[ilo*ldh+ilo-1] != 0:
+		panic(notIsolated)
+	}
+
 	if ilo == ihi {
 		wr[ilo] = h[ilo*ldh+ilo]
 		wi[ilo] = 0

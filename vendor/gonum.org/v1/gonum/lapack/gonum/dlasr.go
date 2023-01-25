@@ -12,77 +12,96 @@ import (
 // Dlasr applies a sequence of plane rotations to the m×n matrix A. This series
 // of plane rotations is implicitly represented by a matrix P. P is multiplied
 // by a depending on the value of side -- A = P * A if side == lapack.Left,
-// A = A * P^T if side == lapack.Right.
+// A = A * Pᵀ if side == lapack.Right.
 //
-//The exact value of P depends on the value of pivot, but in all cases P is
+// The exact value of P depends on the value of pivot, but in all cases P is
 // implicitly represented by a series of 2×2 rotation matrices. The entries of
 // rotation matrix k are defined by s[k] and c[k]
-//  R(k) = [ c[k] s[k]]
-//         [-s[k] s[k]]
+//
+//	R(k) = [ c[k] s[k]]
+//	       [-s[k] s[k]]
+//
 // If direct == lapack.Forward, the rotation matrices are applied as
 // P = P(z-1) * ... * P(2) * P(1), while if direct == lapack.Backward they are
 // applied as P = P(1) * P(2) * ... * P(n).
 //
 // pivot defines the mapping of the elements in R(k) to P(k).
 // If pivot == lapack.Variable, the rotation is performed for the (k, k+1) plane.
-//  P(k) = [1                    ]
-//         [    ...              ]
-//         [     1               ]
-//         [       c[k] s[k]     ]
-//         [      -s[k] c[k]     ]
-//         [                 1   ]
-//         [                ...  ]
-//         [                    1]
+//
+//	P(k) = [1                    ]
+//	       [    ...              ]
+//	       [     1               ]
+//	       [       c[k] s[k]     ]
+//	       [      -s[k] c[k]     ]
+//	       [                 1   ]
+//	       [                ...  ]
+//	       [                    1]
+//
 // if pivot == lapack.Top, the rotation is performed for the (1, k+1) plane,
-//  P(k) = [c[k]        s[k]     ]
-//         [    1                ]
-//         [     ...             ]
-//         [         1           ]
-//         [-s[k]       c[k]     ]
-//         [                 1   ]
-//         [                ...  ]
-//         [                    1]
+//
+//	P(k) = [c[k]        s[k]     ]
+//	       [    1                ]
+//	       [     ...             ]
+//	       [         1           ]
+//	       [-s[k]       c[k]     ]
+//	       [                 1   ]
+//	       [                ...  ]
+//	       [                    1]
+//
 // and if pivot == lapack.Bottom, the rotation is performed for the (k, z) plane.
-//  P(k) = [1                    ]
-//         [  ...                ]
-//         [      1              ]
-//         [        c[k]     s[k]]
-//         [           1         ]
-//         [            ...      ]
-//         [              1      ]
-//         [       -s[k]     c[k]]
+//
+//	P(k) = [1                    ]
+//	       [  ...                ]
+//	       [      1              ]
+//	       [        c[k]     s[k]]
+//	       [           1         ]
+//	       [            ...      ]
+//	       [              1      ]
+//	       [       -s[k]     c[k]]
+//
 // s and c have length m - 1 if side == blas.Left, and n - 1 if side == blas.Right.
 //
 // Dlasr is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlasr(side blas.Side, pivot lapack.Pivot, direct lapack.Direct, m, n int, c, s, a []float64, lda int) {
-	checkMatrix(m, n, a, lda)
-	if side != blas.Left && side != blas.Right {
+	switch {
+	case side != blas.Left && side != blas.Right:
 		panic(badSide)
-	}
-	if pivot != lapack.Variable && pivot != lapack.Top && pivot != lapack.Bottom {
+	case pivot != lapack.Variable && pivot != lapack.Top && pivot != lapack.Bottom:
 		panic(badPivot)
-	}
-	if direct != lapack.Forward && direct != lapack.Backward {
+	case direct != lapack.Forward && direct != lapack.Backward:
 		panic(badDirect)
+	case m < 0:
+		panic(mLT0)
+	case n < 0:
+		panic(nLT0)
+	case lda < max(1, n):
+		panic(badLdA)
 	}
-	if side == blas.Left {
-		if len(c) < m-1 {
-			panic(badSlice)
-		}
-		if len(s) < m-1 {
-			panic(badSlice)
-		}
-	} else {
-		if len(c) < n-1 {
-			panic(badSlice)
-		}
-		if len(s) < n-1 {
-			panic(badSlice)
-		}
-	}
+
+	// Quick return if possible.
 	if m == 0 || n == 0 {
 		return
 	}
+
+	if side == blas.Left {
+		if len(c) < m-1 {
+			panic(shortC)
+		}
+		if len(s) < m-1 {
+			panic(shortS)
+		}
+	} else {
+		if len(c) < n-1 {
+			panic(shortC)
+		}
+		if len(s) < n-1 {
+			panic(shortS)
+		}
+	}
+	if len(a) < (m-1)*lda+n {
+		panic(shortA)
+	}
+
 	if side == blas.Left {
 		if pivot == lapack.Variable {
 			if direct == lapack.Forward {

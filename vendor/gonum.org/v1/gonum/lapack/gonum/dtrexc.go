@@ -7,7 +7,9 @@ package gonum
 import "gonum.org/v1/gonum/lapack"
 
 // Dtrexc reorders the real Schur factorization of a n×n real matrix
-//  A = Q*T*Q^T
+//
+//	A = Q*T*Qᵀ
+//
 // so that the diagonal block of T with row index ifst is moved to row ilst.
 //
 // On entry, T must be in Schur canonical form, that is, block upper triangular
@@ -15,11 +17,11 @@ import "gonum.org/v1/gonum/lapack"
 // elements equal and its off-diagonal elements of opposite sign.
 //
 // On return, T will be reordered by an orthogonal similarity transformation Z
-// as Z^T*T*Z, and will be again in Schur canonical form.
+// as Zᵀ*T*Z, and will be again in Schur canonical form.
 //
 // If compq is lapack.UpdateSchur, on return the matrix Q of Schur vectors will be
-// updated by postmultiplying it with Z.
-// If compq is lapack.None, the matrix Q is not referenced and will not be
+// updated by post-multiplying it with Z.
+// If compq is lapack.UpdateSchurNone, the matrix Q is not referenced and will not be
 // updated.
 // For other values of compq Dtrexc will panic.
 //
@@ -34,7 +36,9 @@ import "gonum.org/v1/gonum/lapack"
 // is true, ilstOut may differ from ilst by +1 or -1.
 //
 // It must hold that
-//  0 <= ifst < n, and  0 <= ilst < n,
+//
+//	0 <= ifst < n, and  0 <= ilst < n,
+//
 // otherwise Dtrexc will panic.
 //
 // If ok is false, two adjacent blocks were too close to swap because the
@@ -45,32 +49,38 @@ import "gonum.org/v1/gonum/lapack"
 // work must have length at least n, otherwise Dtrexc will panic.
 //
 // Dtrexc is an internal routine. It is exported for testing purposes.
-func (impl Implementation) Dtrexc(compq lapack.EVComp, n int, t []float64, ldt int, q []float64, ldq int, ifst, ilst int, work []float64) (ifstOut, ilstOut int, ok bool) {
-	checkMatrix(n, n, t, ldt)
-	var wantq bool
-	switch compq {
-	default:
-		panic("lapack: bad value of compq")
-	case lapack.None:
-		// Nothing to do because wantq is already false.
-	case lapack.UpdateSchur:
-		wantq = true
-		checkMatrix(n, n, q, ldq)
+func (impl Implementation) Dtrexc(compq lapack.UpdateSchurComp, n int, t []float64, ldt int, q []float64, ldq int, ifst, ilst int, work []float64) (ifstOut, ilstOut int, ok bool) {
+	switch {
+	case compq != lapack.UpdateSchur && compq != lapack.UpdateSchurNone:
+		panic(badUpdateSchurComp)
+	case n < 0:
+		panic(nLT0)
+	case ldt < max(1, n):
+		panic(badLdT)
+	case ldq < 1, compq == lapack.UpdateSchur && ldq < n:
+		panic(badLdQ)
+	case (ifst < 0 || n <= ifst) && n > 0:
+		panic(badIfst)
+	case (ilst < 0 || n <= ilst) && n > 0:
+		panic(badIlst)
 	}
-	if (ifst < 0 || n <= ifst) && n > 0 {
-		panic("lapack: ifst out of range")
-	}
-	if (ilst < 0 || n <= ilst) && n > 0 {
-		panic("lapack: ilst out of range")
-	}
-	if len(work) < n {
-		panic(badWork)
-	}
-
-	ok = true
 
 	// Quick return if possible.
-	if n <= 1 {
+	if n == 0 {
+		return ifst, ilst, true
+	}
+
+	switch {
+	case len(t) < (n-1)*ldt+n:
+		panic(shortT)
+	case compq == lapack.UpdateSchur && len(q) < (n-1)*ldq+n:
+		panic(shortQ)
+	case len(work) < n:
+		panic(shortWork)
+	}
+
+	// Quick return if possible.
+	if n == 1 {
 		return ifst, ilst, true
 	}
 
@@ -92,6 +102,9 @@ func (impl Implementation) Dtrexc(compq lapack.EVComp, n int, t []float64, ldt i
 	if ilst+1 < n && t[(ilst+1)*ldt+ilst] != 0 {
 		nbl = 2
 	}
+
+	ok = true
+	wantq := compq == lapack.UpdateSchur
 
 	switch {
 	case ifst == ilst:
@@ -165,12 +178,12 @@ func (impl Implementation) Dtrexc(compq lapack.EVComp, n int, t []float64, ldt i
 		here := ifst
 		for here > ilst {
 			// Swap block with next one above.
+			nbnext := 1
+			if here >= 2 && t[(here-1)*ldt+here-2] != 0 {
+				nbnext = 2
+			}
 			if nbf == 1 || nbf == 2 {
 				// Current block either 1×1 or 2×2.
-				nbnext := 1
-				if here-2 >= 0 && t[(here-1)*ldt+here-2] != 0 {
-					nbnext = 2
-				}
 				ok = impl.Dlaexc(wantq, n, t, ldt, q, ldq, here-nbnext, nbnext, nbf, work)
 				if !ok {
 					return ifst, here, false
@@ -185,10 +198,6 @@ func (impl Implementation) Dtrexc(compq lapack.EVComp, n int, t []float64, ldt i
 
 			// Current block consists of two 1×1 blocks each of
 			// which must be swapped individually.
-			nbnext := 1
-			if here-2 >= 0 && t[(here-1)*ldt+here-2] != 0 {
-				nbnext = 2
-			}
 			ok = impl.Dlaexc(wantq, n, t, ldt, q, ldq, here-nbnext, nbnext, 1, work)
 			if !ok {
 				return ifst, here, false

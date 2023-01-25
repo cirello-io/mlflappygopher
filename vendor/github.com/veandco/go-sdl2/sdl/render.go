@@ -15,6 +15,16 @@ static inline int SDL_UpdateYUVTexture(SDL_Texture* texture, const SDL_Rect* rec
 }
 #endif
 
+#if !(SDL_VERSION_ATLEAST(2,0,4))
+#if defined(WARN_OUTDATED)
+#pragma message("SDL_RenderIsClipEnabled is not supported before SDL 2.0.4")
+#endif
+static inline SDL_bool SDLCALL SDL_RenderIsClipEnabled(SDL_Renderer * renderer)
+{
+	return SDL_FALSE;
+}
+#endif
+
 #if !(SDL_VERSION_ATLEAST(2,0,5))
 
 #if defined(WARN_OUTDATED)
@@ -572,7 +582,7 @@ func (texture *Texture) GetBlendMode() (bm BlendMode, err error) {
 
 // Update updates the given texture rectangle with new pixel data.
 // (https://wiki.libsdl.org/SDL_UpdateTexture)
-func (texture *Texture) Update(rect *Rect, pixels []byte, pitch int) error {
+func (texture *Texture) Update(rect *Rect, pixels unsafe.Pointer, pitch int) error {
 	if pixels == nil {
 		return nil
 	}
@@ -580,7 +590,7 @@ func (texture *Texture) Update(rect *Rect, pixels []byte, pitch int) error {
 		C.SDL_UpdateTexture(
 			texture.cptr(),
 			rect.cptr(),
-			unsafe.Pointer(&pixels[0]),
+			pixels,
 			C.int(pitch))))
 }
 
@@ -711,6 +721,12 @@ func (renderer *Renderer) SetViewport(rect *Rect) error {
 func (renderer *Renderer) GetViewport() (rect Rect) {
 	C.SDL_RenderGetViewport(renderer.cptr(), rect.cptr())
 	return
+}
+
+// IsClipEnabled returns whether clipping is enabled on the given renderer.
+// (https://wiki.libsdl.org/SDL_RenderIsClipEnabled)
+func (renderer *Renderer) IsClipEnabled() bool {
+	return C.SDL_RenderIsClipEnabled(renderer.cptr()) == C.SDL_TRUE
 }
 
 // SetClipRect sets the clip rectangle for rendering on the specified target.
@@ -1171,38 +1187,7 @@ func (renderer *Renderer) RenderGeometry(texture *Texture, vertices []Vertex, in
 // indices into the vertex arrays Color and alpha modulation is done per vertex
 // (SDL_SetTextureColorMod and SDL_SetTextureAlphaMod are ignored).
 // (https://wiki.libsdl.org/SDL_RenderGeometryRaw)
-func (renderer *Renderer) RenderGeometryRaw(texture *Texture, xy *float32, xy_stride int, color *Color, color_stride int, uv *float32, uv_stride int, num_vertices int, indices interface{}) (err error) {
-	size_indices := 0
-	_indices := unsafe.Pointer(nil)
-	num_indices := 0
-
-	switch t := indices.(type) {
-	case []byte:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 1
-		num_indices = len(t)
-	case []int8:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 1
-		num_indices = len(t)
-	case []int16:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 2
-		num_indices = len(t)
-	case []uint16:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 2
-		num_indices = len(t)
-	case []int32:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 4
-		num_indices = len(t)
-	case []uint32:
-		_indices = unsafe.Pointer(&t[0])
-		size_indices = 4
-		num_indices = len(t)
-	}
-
+func (renderer *Renderer) RenderGeometryRaw(texture *Texture, xy *float32, xy_stride int, color *Color, color_stride int, uv *float32, uv_stride int, num_vertices int, indices unsafe.Pointer, num_indices int, size_indices int) (err error) {
 	_texture := texture.cptr()
 	_xy := (*C.float)(xy)
 	_xy_stride := C.int(xy_stride)
@@ -1213,6 +1198,7 @@ func (renderer *Renderer) RenderGeometryRaw(texture *Texture, xy *float32, xy_st
 	_num_vertices := C.int(num_vertices)
 	_num_indices := C.int(num_indices)
 	_size_indices := C.int(size_indices)
+	_indices := indices
 
 	err = errorFromInt(int(C.RenderGeometryRaw(renderer.cptr(), _texture, _xy, _xy_stride, _color, _color_stride, _uv, _uv_stride, _num_vertices, _indices, _num_indices, _size_indices)))
 	return
