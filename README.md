@@ -10,3 +10,4 @@ Features:
 - It uses a neural network to react to the game input
 - It uses an incomplete implementation of genetic algorithm to evolve the AI
 
+You may need Rosetta to run this on Mac.
