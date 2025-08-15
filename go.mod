@@ -1,6 +1,6 @@
 module cirello.io/mlflappygopher
 
-go 1.18
+go 1.25
 
 require (
 	github.com/sjwhitworth/golearn v0.0.0-20221228163002-74ae077eafb2
