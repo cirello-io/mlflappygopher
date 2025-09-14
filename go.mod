@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/sjwhitworth/golearn v0.0.0-20221228163002-74ae077eafb2
-	github.com/veandco/go-sdl2 v0.4.35
+	github.com/veandco/go-sdl2 v0.4.40
 	gonum.org/v1/gonum v0.14.0
 )
 
